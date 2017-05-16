@@ -1,0 +1,4 @@
+worker-id: 600c00f1-4a28-495b-a4fb-46b3649f5e47
+logs.users: []
+logs.groups: []
+topology.submitter.user: impadmin

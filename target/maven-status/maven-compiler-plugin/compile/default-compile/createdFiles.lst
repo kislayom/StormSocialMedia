@@ -1,0 +1,5 @@
+com/mycompany/stormusecase/TwitterTopologyBuilder.class
+com/mycompany/stormusecase/TwitterTestAggregate.class
+com/spout/TwitterSpout.class
+com/mycompany/stormusecase/BeanHash.class
+com/mycompany/stormusecase/FirstBolt.class
