@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.storm.Config;
@@ -47,15 +48,17 @@ import twitter4j.Status;
 public class TwitterTestAggregate implements IRichBolt {
 
     private static final int MAX_GAP_IN_MINUTES = 15;
-    HashMap map;
+    ConcurrentHashMap map;
+    private int count;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        map = new HashMap(20000);
+        map = new ConcurrentHashMap(20000);
     }
 
     @Override
     public void execute(Tuple input) {
+        count++;
         if (!isTickTuple(input)) {
             Status status = (Status) input.getValueByField("status");
             String hashtag = input.getStringByField("hashtag");
@@ -64,6 +67,24 @@ public class TwitterTestAggregate implements IRichBolt {
             Calendar creationCal = Calendar.getInstance();
             creationCal.setTime(createdAt);
             int createdHour = creationCal.get(Calendar.HOUR_OF_DAY);
+            System.out.println("count "+count);
+            if(count>1000){
+                count=0;
+                System.out.println("Processed 1000 events");
+                Set keySet = map.keySet();
+                Iterator iterator = keySet.iterator();
+                int max=0;
+                while(iterator.hasNext()){
+                    String key = (String) iterator.next();
+                    if(key.contains("_"+createdHour)){
+                        int value=(int) map.get(key);
+                        if(value>max){
+                            System.out.println("Largest found so far is "+ key+" its value is "+ value);
+                            max=value;
+                        }
+                    }
+                }
+            }
 
             //if(map.containsKey(map))
             Integer count = (Integer) map.get(hashtag + "_" + createdHour);
@@ -97,8 +118,8 @@ public class TwitterTestAggregate implements IRichBolt {
                     cal1.setTime(new Date());
 
                     String key = (String) iterator.next();
-                    int keyHour = Integer.parseInt(key.substring(key.lastIndexOf("_")));
-                    if (keyHour == cal.get(Calendar.HOUR_OF_DAY)) {
+                    int keyHour = Integer.parseInt(key.substring(key.lastIndexOf("_")+1));
+                    if (keyHour == cal.get(Calendar.HOUR_OF_DAY)||keyHour==cal1.get(Calendar.HOUR_OF_DAY)) {
 
                         int count = (int) map.get(key);
 
@@ -114,8 +135,6 @@ public class TwitterTestAggregate implements IRichBolt {
                         map.remove(key);
                         System.out.println("removing "+key);
                         //  System.out.println(response + " " + mapper.writeValueAsString(bean));
-                    }else if(keyHour==cal1.get(Calendar.HOUR_OF_DAY)){
-                        
                     }else{
                         System.out.println("Removing garbage key");
                         map.remove(key);
@@ -144,7 +163,7 @@ public class TwitterTestAggregate implements IRichBolt {
     @Override
     public Map<String, Object> getComponentConfiguration() {
         Config conf = new Config();
-        conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 3800);
+        conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 160);
         return conf;
     }
 

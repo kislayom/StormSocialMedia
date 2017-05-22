@@ -29,7 +29,7 @@ public class TwitterTopologyBuilder {
         builder.setBolt("twitter-hashtag-reader-bolt", new FirstBolt(), 1)
                 .shuffleGrouping("twitter-spout");
         
-        builder.setBolt("AggregateBolt", new TwitterTestAggregate(), 2)
+        builder.setBolt("AggregateBolt", new TwitterTestAggregate(), 1)
                 // .shuffleGrouping("twitter-spout");
                 .fieldsGrouping("twitter-hashtag-reader-bolt","stream1",new Fields("hashtag"));
 
