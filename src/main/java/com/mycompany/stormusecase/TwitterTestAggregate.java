@@ -30,7 +30,9 @@ import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
@@ -50,10 +52,14 @@ public class TwitterTestAggregate implements IRichBolt {
     private static final int MAX_GAP_IN_MINUTES = 15;
     ConcurrentHashMap map;
     private int count;
+    ConcurrentHashMap hashTagSocial;
+    OutputCollector collector;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         map = new ConcurrentHashMap(20000);
+        hashTagSocial= new ConcurrentHashMap(1000);
+        this.collector = collector;
     }
 
     @Override
@@ -62,6 +68,7 @@ public class TwitterTestAggregate implements IRichBolt {
         if (!isTickTuple(input)) {
             Status status = (Status) input.getValueByField("status");
             String hashtag = input.getStringByField("hashtag");
+            
             Date createdAt = status.getCreatedAt();
 
             Calendar creationCal = Calendar.getInstance();
@@ -94,6 +101,13 @@ public class TwitterTestAggregate implements IRichBolt {
                 count = 1;
             }
             map.put(hashtag + "_" + createdHour, count);
+            
+            if(!hashTagSocial.containsKey(hashtag)){
+                 collector.emit("youtube", new Values(hashtag));
+                 collector.emit("instagram", new Values(hashtag));
+                 hashTagSocial.put(hashtag, hashtag);
+            }
+            
         } else {
 
             try {
@@ -157,6 +171,9 @@ public class TwitterTestAggregate implements IRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+         declarer.declareStream("youtube", new Fields("hashtag"));
+         declarer.declareStream("instagram", new Fields("hashtag"));
+         
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

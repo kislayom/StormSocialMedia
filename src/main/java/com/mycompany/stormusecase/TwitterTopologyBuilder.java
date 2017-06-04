@@ -32,7 +32,15 @@ public class TwitterTopologyBuilder {
         builder.setBolt("AggregateBolt", new TwitterTestAggregate(), 1)
                 // .shuffleGrouping("twitter-spout");
                 .fieldsGrouping("twitter-hashtag-reader-bolt","stream1",new Fields("hashtag"));
+        
+        builder.setBolt("YoutubeBolt", new YoutubeBolt(), 1)
+                // .shuffleGrouping("twitter-spout");
+                .shuffleGrouping("AggregateBolt","youtube");
 
+        builder.setBolt("InstagramBolt", new InstagramBolt(), 1)
+                // .shuffleGrouping("twitter-spout");
+                .shuffleGrouping("AggregateBolt","instagram");
+        
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("TwitterHashtagStorm3", config,
                 builder.createTopology());
